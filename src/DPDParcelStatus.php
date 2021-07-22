@@ -36,13 +36,15 @@ class DPDParcelStatus{
 
         if ($this->environment['wsdlCache']){
             $soapParams = [
-                'cache_wsdl' => WSDL_CACHE_BOTH
+                'cache_wsdl' => WSDL_CACHE_BOTH,
+                'trace' => 1
             ];
         }
         else{
             $soapParams = [
                 'cache_wsdl' => WSDL_CACHE_NONE,
-                'exceptions' => true
+                'exceptions' => true,
+                'trace' => 1
             ];
         }
         
@@ -67,6 +69,51 @@ class DPDParcelStatus{
                     ];
                 }
             }  
+        }
+        catch (SoapFault $e)
+        {
+         throw new Exception($e->faultstring);   
+        }
+    }
+    
+    /**
+     * Get the parcel's current status by web number
+     * @param  string $awb
+     * @return array 
+     */
+    public function getParcelLabelNumberByWebNumber($awb)
+    {
+
+        if ($this->environment['wsdlCache']){
+            $soapParams = [
+                'cache_wsdl' => WSDL_CACHE_BOTH,
+                'trace' => 1
+            ];
+        }
+        else{
+            $soapParams = [
+                'cache_wsdl' => WSDL_CACHE_NONE,
+                'exceptions' => true,
+                'trace' => 1
+            ];
+        }
+        
+        try{
+            
+            $client = new Soapclient($this->environment['parcelStatusWsdl'], $soapParams);
+            $header = new SOAPHeader(self::SOAPHEADER_URL, 'authentication', $this->authorisation['token']);
+            $client->__setSoapHeaders($header);
+            $response = $client->getParcelLabelNumberForWebNumber(['webNumber' => $awb]);
+            
+            $response = (array)$response;
+
+            if (empty($response['parcelLabelNumber'])) {
+                throw new Exception('Parcel not found'); 
+            }
+            
+
+
+            return $response['parcelLabelNumber'];
         }
         catch (SoapFault $e)
         {
